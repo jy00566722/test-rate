@@ -1,5 +1,9 @@
 name: Go CI/CD
 
+permissions:
+  contents: write
+  discussions: write
+  
 on:
   push:
     branches: [ main ]
