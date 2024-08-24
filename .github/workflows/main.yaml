@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: |
         cd rate-api-go
-        go build -v -o rate-api .      
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o rate-api .      
 
     - name: Create Release and Upload Asset
       uses: actions/github-script@v7
