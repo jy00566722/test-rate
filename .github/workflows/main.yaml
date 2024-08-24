@@ -59,6 +59,6 @@ jobs:
         script: |
           wget https://github.com/${{ github.repository }}/releases/latest/download/rate-api
           chmod +x rate-api
-#          sudo systemctl stop rate-api.service
+          #sudo systemctl stop rate-api.service
           sudo mv rate-api rate-api-test-github-actions
-#          sudo systemctl start rate-api.service
+          #sudo systemctl start rate-api.service
