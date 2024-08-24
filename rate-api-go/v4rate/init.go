@@ -44,7 +44,7 @@ func GetRateFromNowApi() {
 	cu_list := []string{"CUC", "BYR", "ERN", "FKP", "GIP", "HRK", "KPW", "LTL", "LVL", "MNT", "MRO", "SHP", "STD", "SYP", "VEF", "VUV", "WST", "XDR", "ZWL"}
 	// cu_list := []string{"ERN", "FKP", "GIP", "HRK", "KPW", "MNT", "SHP", "SYP", "VUV", "WST", "ZWL"}
 	for _, v := range cu_list {
-		time.Sleep(150 * time.Millisecond)
+		time.Sleep(120 * time.Millisecond)
 		res, err := getDate(v)
 		if err != nil {
 			fmt.Println("未正确获取到汇率:,", v)
