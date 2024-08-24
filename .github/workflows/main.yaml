@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: |
         cd rate-api-go
-        go build -v -o rate-api .      
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o rate-api .      
 
     - name: Create Release and Upload Asset
       uses: actions/github-script@v7
@@ -33,11 +33,12 @@ jobs:
         script: |
           const fs = require('fs');
           const { owner, repo } = context.repo;
+          const tagName = process.env.GITHUB_REF.replace('refs/tags/', '');
           const release = await github.rest.repos.createRelease({
             owner,
             repo,
-            tag_name: process.env.GITHUB_REF,
-            name: `Release ${process.env.GITHUB_REF}`,
+            tag_name: tagName,
+            name: `Release ${tagName}`,
             draft: false,
             prerelease: false
           });
@@ -46,7 +47,7 @@ jobs:
             owner,
             repo,
             release_id: release.data.id,
-            name: 'rate-api',
+            name: `rate-api-${tagName}`,
             data: fs.readFileSync('./rate-api-go/rate-api')
           });
 
@@ -57,8 +58,41 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
-          wget https://github.com/${{ github.repository }}/releases/latest/download/rate-api
-          chmod +x rate-api
-          #sudo systemctl stop rate-api.service
-          sudo mv rate-api rate-api-test-github-actions
-          #sudo systemctl start rate-api.service
+          # 设置变量
+          export TAG_NAME=${GITHUB_REF#refs/tags/}
+          export INSTALL_DIR=/opt/rate-api
+          export BINARY_NAME=rate-api-$TAG_NAME
+          
+          # 创建安装目录（如果不存在）
+          sudo mkdir -p $INSTALL_DIR
+          
+          # 下载新版本
+          wget https://github.com/${{ github.repository }}/releases/latest/download/$BINARY_NAME
+          
+          # 移动新版本到安装目录并设置执行权限
+          sudo mv $BINARY_NAME $INSTALL_DIR/
+          sudo chmod 755 $INSTALL_DIR/$BINARY_NAME
+          
+          # 确保 rate-api 用户和组存在
+          sudo groupadd -f rate-api
+          sudo useradd -r -g rate-api -s /sbin/nologin rate-api || true
+          
+          # 设置正确的所有权
+          sudo chown -R rate-api:rate-api $INSTALL_DIR
+          
+          # 更新软链接
+          sudo ln -sf $INSTALL_DIR/$BINARY_NAME /usr/local/bin/rate-api
+          sudo chown -h rate-api:rate-api /usr/local/bin/rate-api
+          
+          # 确保日志目录存在并设置正确的权限
+          sudo mkdir -p /var/log/rate-api
+          sudo chown rate-api:rate-api /var/log/rate-api
+          sudo chmod 755 /var/log/rate-api
+          
+          # 重新加载 systemd 配置并重启服务
+          sudo systemctl daemon-reload
+          sudo systemctl restart rate-api.service
+          
+          # 清理旧版本(保留最新的3个版本)
+          cd $INSTALL_DIR
+          ls -t rate-api-* | tail -n +4 | xargs -I {} sudo rm -- {}
